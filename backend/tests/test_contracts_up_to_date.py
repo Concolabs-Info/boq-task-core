@@ -11,7 +11,6 @@ def test_contracts_up_to_date(tmp_path):
         "geometry.schema.json",
         "issue.schema.json",
         "observation-record.schema.json",
-        "openapi.json",
     ]
     for path in written:
         committed = Path(CONTRACTS_DIR) / path.name

@@ -1,6 +1,7 @@
 """Write the shared JSON contracts from the backend models.
 
-Run from the repo root after changing a contract model or an API route:
+Run from the repo root after changing a contract model in backend/app/modules/takeoff/contracts.py.
+The full API description is served live at http://127.0.0.1:8000/openapi.json.
 
     python backend/scripts/export_contracts.py
 """
@@ -14,8 +15,6 @@ CONTRACTS_DIR = BACKEND_DIR.parent / "shared" / "contracts"
 
 sys.path.insert(0, str(BACKEND_DIR))
 
-from app.core.config import Settings  # noqa: E402
-from app.main import create_app  # noqa: E402
 from app.modules.takeoff.contracts import BoqItem, Geometry, Issue, ObservationRecord  # noqa: E402
 
 MODELS = {
@@ -33,10 +32,7 @@ def _write(path: Path, data: dict) -> Path:
 
 def export(out_dir: Path = CONTRACTS_DIR) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
-    written = [_write(out_dir / name, model.model_json_schema()) for name, model in MODELS.items()]
-    app = create_app(Settings(database_path=out_dir / "unused.db", storage_root=out_dir / "unused"))
-    written.append(_write(out_dir / "openapi.json", app.openapi()))
-    return written
+    return [_write(out_dir / name, model.model_json_schema()) for name, model in MODELS.items()]
 
 
 if __name__ == "__main__":
