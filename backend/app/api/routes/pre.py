@@ -1,4 +1,6 @@
-from fastapi import APIRouter, UploadFile
+from typing import Annotated
+
+from fastapi import APIRouter, Query, UploadFile
 from fastapi.responses import FileResponse
 
 from ...modules.pre import frame, service
@@ -26,6 +28,28 @@ def list_pages(project_id: str, conn: Conn) -> list[Page]:
 def page_image(page_id: str, conn: Conn, settings: SettingsDep) -> FileResponse:
     page, project_id = service.get_page(conn, page_id)
     return FileResponse(service.render_path(settings.storage_root, project_id, page.id), media_type="image/png")
+
+
+def box_from_query(x0: float | None, y0: float | None, x1: float | None, y1: float | None):
+    values = (x0, y0, x1, y1)
+    return None if any(value is None for value in values) else values
+
+
+@router.get("/api/pages/{page_id}/vectors")
+def page_vectors(
+    page_id: str,
+    conn: Conn,
+    settings: SettingsDep,
+    x0: float | None = None,
+    y0: float | None = None,
+    x1: float | None = None,
+    y1: float | None = None,
+    layer: Annotated[list[str] | None, Query()] = None,
+) -> dict:
+    """Text, vector lines and rectangles, and layers read from the PDF itself. Optional box in render pixels."""
+    return service.page_vectors(
+        conn, settings.storage_root, page_id, box_from_query(x0, y0, x1, y1), set(layer) if layer else None
+    )
 
 
 @router.put("/api/pages/{page_id}/scale", response_model=Page)

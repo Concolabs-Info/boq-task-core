@@ -3,12 +3,14 @@
 import hashlib
 import json
 import sqlite3
+from dataclasses import asdict
 from pathlib import Path
 
 from fastapi import HTTPException
 
 from ...db import new_id, now
 from ...services.pdf import InvalidPdf, RenderedPage, render_pdf
+from ...services.pdf_vectors import read_vectors
 from .models import Document, Page, Project, StoreyIn
 from .scale import PointsScale, RatioScale, metres_per_pixel
 
@@ -144,3 +146,29 @@ def replace_storeys(conn: sqlite3.Connection, project_id: str, storeys: list[Sto
         ],
     )
     return list_storeys(conn, project_id)
+
+
+MAX_TEXT_LINES = 500
+MAX_PATHS = 2000
+
+
+def page_vectors(
+    conn: sqlite3.Connection,
+    storage_root: Path,
+    page_id: str,
+    bbox: tuple[float, float, float, float] | None = None,
+    layers: set[str] | None = None,
+) -> dict:
+    """Text, vector paths and layers read straight from the source PDF of a page. See services/pdf_vectors.py."""
+    page, project_id = get_page(conn, page_id)
+    pdf_path = storage_root / project_id / "source" / f"{page.document_id}.pdf"
+    vectors = read_vectors(pdf_path, page.page_index, bbox=bbox, layers=layers)
+    text = [asdict(line) for line in vectors.text[:MAX_TEXT_LINES]]
+    paths = [asdict(path) for path in vectors.paths[:MAX_PATHS]]
+    return {
+        "page_id": page.id,
+        "layers": vectors.layers,
+        "text": text,
+        "paths": paths,
+        "truncated": len(vectors.text) > MAX_TEXT_LINES or len(vectors.paths) > MAX_PATHS,
+    }

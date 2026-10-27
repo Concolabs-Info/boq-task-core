@@ -6,10 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 
 from ...modules.pre.frame import current_frame, frame_status, latest_frame
-from ...modules.pre.service import get_page, get_project, render_path
+from ...modules.pre.service import get_page, get_project, page_vectors, render_path
 from ...modules.takeoff.observations import ObservationErrors, create_many
 from ...services.pdf import crop_png
 from ..deps import Conn, SettingsDep, require_runtime_token
+from .pre import box_from_query
 
 router = APIRouter(prefix="/internal", tags=["internal"], dependencies=[Depends(require_runtime_token)])
 
@@ -50,6 +51,19 @@ def crop(page_id: str, x0: float, y0: float, x1: float, y1: float, conn: Conn, s
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     return Response(content=png, media_type="image/png")
+
+
+@router.get("/pages/{page_id}/vectors")
+def vectors(
+    page_id: str,
+    conn: Conn,
+    settings: SettingsDep,
+    x0: float | None = None,
+    y0: float | None = None,
+    x1: float | None = None,
+    y1: float | None = None,
+) -> dict:
+    return page_vectors(conn, settings.storage_root, page_id, box_from_query(x0, y0, x1, y1))
 
 
 @router.post("/projects/{project_id}/elements/{element}/observations")
