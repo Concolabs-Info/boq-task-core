@@ -27,6 +27,11 @@ def render_pdf(data: bytes, dpi: int = RENDER_DPI) -> list[RenderedPage]:
     except Exception as error:
         raise InvalidPdf(str(error)) from error
     try:
+        # PyMuPDF opens images and HTML too, so check it really is a PDF.
+        if not doc.is_pdf:
+            raise InvalidPdf("not a PDF")
+        if doc.needs_pass:
+            raise InvalidPdf("PDF is password protected")
         if doc.page_count == 0:
             raise InvalidPdf("PDF has no pages")
         pages = []
@@ -34,6 +39,10 @@ def render_pdf(data: bytes, dpi: int = RENDER_DPI) -> list[RenderedPage]:
             pixmap = page.get_pixmap(dpi=dpi)
             pages.append(RenderedPage(page.number, pixmap.width, pixmap.height, pixmap.tobytes("png")))
         return pages
+    except InvalidPdf:
+        raise
+    except Exception as error:
+        raise InvalidPdf(str(error)) from error
     finally:
         doc.close()
 

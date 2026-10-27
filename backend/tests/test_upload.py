@@ -1,4 +1,5 @@
 import pymupdf
+import pytest
 
 from .helpers import make_pdf, new_project, upload
 
@@ -56,3 +57,50 @@ def test_unknown_project_404(client):
 
 def test_unknown_page_image_404(client):
     assert client.get("/api/pages/nope/image").status_code == 404
+
+
+def _png_bytes() -> bytes:
+    return pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 10, 10), False).tobytes("png")
+
+
+def _encrypted_pdf() -> bytes:
+    doc = pymupdf.open(stream=make_pdf(1), filetype="pdf")
+    data = doc.tobytes(encryption=pymupdf.PDF_ENCRYPT_AES_256, user_pw="secret", owner_pw="secret")
+    doc.close()
+    return data
+
+
+@pytest.mark.parametrize(
+    "data", [_png_bytes(), b"<html><body>plan</body></html>", _encrypted_pdf()], ids=["png", "html", "encrypted"]
+)
+def test_other_files_rejected_with_400(client, data):
+    project_id = new_project(client)
+    response = upload(client, project_id, data, filename="plan.pdf")
+    assert response.status_code == 400
+    assert response.json()["detail"] == "plan.pdf is not a readable PDF"
+    assert client.get(f"/api/projects/{project_id}/pages").json() == []
+
+
+class FailingCommit:
+    """Wraps a connection so commit fails, as it would if the database were locked."""
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+    def commit(self):
+        raise RuntimeError("database is locked")
+
+
+def test_failed_commit_is_not_reported_as_success(settings, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app.api import deps
+    from app.main import create_app
+
+    real_connect = deps.connect
+    monkeypatch.setattr(deps, "connect", lambda path: FailingCommit(real_connect(path)))
+    with TestClient(create_app(settings), raise_server_exceptions=False) as test_client:
+        assert test_client.post("/api/projects", json={"name": "X"}).status_code == 500

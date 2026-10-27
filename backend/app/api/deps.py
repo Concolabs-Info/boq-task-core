@@ -28,7 +28,8 @@ def get_conn(settings: SettingsDep) -> Iterator[sqlite3.Connection]:
         conn.close()
 
 
-Conn = Annotated[sqlite3.Connection, Depends(get_conn)]
+# scope="function" closes the connection, and commits, before the response is sent.
+Conn = Annotated[sqlite3.Connection, Depends(get_conn, scope="function")]
 
 
 def require_runtime_token(settings: SettingsDep, authorization: Annotated[str, Header()] = "") -> None:
