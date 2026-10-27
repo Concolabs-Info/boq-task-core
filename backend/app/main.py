@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .api.routes import pre, projects, takeoff
 from .core.config import Settings, get_settings
 from .db import connect, init_db
+from .modules.takeoff import elements  # noqa: F401  (registers every element)
 
 ROUTERS = (projects.router, pre.router, takeoff.router)
 
