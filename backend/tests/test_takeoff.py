@@ -247,3 +247,49 @@ def test_element_before_freeze_is_empty(client, project_with_pages):
     project_id, _ = project_with_pages
     result = element(client, project_id)
     assert result["frame_version"] is None and result["observations"] == []
+
+
+def test_agent_values_win_over_the_box(client, frozen_project, conn):
+    project_id, page_id = frozen_project
+    box = {"page_id": page_id, "bbox": [0, 0, 300, 50]}
+    records = create_many(conn, project_id, KEY, [{"geometry": box, "values": {"n": 1, "side_m": 1.5}}], "agent")
+    assert records[0].values["side_m"] == 1.5
+
+
+def test_agent_box_fills_only_missing_values(client, frozen_project, conn):
+    project_id, page_id = frozen_project
+    box = {"page_id": page_id, "bbox": [0, 0, 300, 50]}
+    records = create_many(conn, project_id, KEY, [{"geometry": box, "values": {"n": 1}}], "agent")
+    assert records[0].values["side_m"] == pytest.approx(3.0)
+
+
+def test_agent_on_unscaled_page_with_complete_values_is_saved(client, frozen_project_no_scale, conn):
+    project_id, page_id = frozen_project_no_scale
+    box = {"page_id": page_id, "bbox": [0, 0, 300, 50]}
+    records = create_many(conn, project_id, KEY, [{"geometry": box, "values": {"n": 1, "side_m": 2.0}}], "agent")
+    assert records[0].values["side_m"] == 2.0
+
+
+def test_renamed_storey_after_refreeze_is_an_error(client, frozen_project):
+    project_id, _ = frozen_project
+    client.post(obs_url(project_id), json={"storey": "Ground", "values": {"n": 1, "side_m": 1}})
+    client.put(f"/api/projects/{project_id}/storeys", json=[{"name": "GF", "level_m": 0}])
+    client.post(f"/api/projects/{project_id}/frame/freeze")
+    issues = element(client, project_id)["issues"]
+    assert [(i["code"], i["severity"]) for i in issues] == [("unknown_storey", "error")]
+
+
+def test_broken_measure_does_not_break_freeze(client, frozen_project, box_element):
+    project_id, page_id = frozen_project
+    client.post(
+        obs_url(project_id), json={"geometry": {"page_id": page_id, "bbox": [0, 0, 300, 50]}, "values": {"n": 1}}
+    )
+
+    def broken(geometry, frame):
+        raise ValueError("bug in measure")
+
+    registry.unregister(KEY)
+    registry.register(ElementSpec(**{**box_element.__dict__, "measure": broken}))
+    response = client.post(f"/api/projects/{project_id}/frame/freeze")
+    assert response.status_code == 200
+    assert element(client, project_id)["observations"][0]["values"]["side_m"] == pytest.approx(3.0)

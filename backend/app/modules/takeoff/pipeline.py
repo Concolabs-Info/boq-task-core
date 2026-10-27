@@ -19,7 +19,17 @@ def run_element(conn: sqlite3.Connection, project_id: str, element: str) -> Elem
     records = list_for(conn, project_id, element, frame.version)
     observed: list[Observed] = []
     issues: list[Issue] = []
+    storeys = frame.storey_names()
     for record in records:
+        if record.storey is not None and record.storey not in storeys:
+            issues.append(
+                Issue(
+                    code="unknown_storey",
+                    message=f"Storey {record.storey} is no longer in Pre. Edit the observation to pick a storey.",
+                    severity="error",
+                    observation_ids=[record.id],
+                )
+            )
         try:
             observed.append(Observed(record=record, data=spec.observation_model.model_validate(record.values)))
         except ValidationError as error:

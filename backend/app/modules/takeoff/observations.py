@@ -31,8 +31,12 @@ def _validation_detail(error: ValidationError) -> list[dict[str, Any]]:
     return error.errors(include_url=False, include_context=False, include_input=False)
 
 
-def _prepare(spec: ElementSpec, frame: Frame, item: ObservationIn) -> dict[str, Any]:
-    """Validate one observation against the frame and the element. Returns the values to store."""
+def _prepare(spec: ElementSpec, frame: Frame, item: ObservationIn, source: Source) -> dict[str, Any]:
+    """Validate one observation against the frame and the element. Returns the values to store.
+
+    For manual entry the drawn box is the source of truth, so measured values replace typed
+    ones. For the agent, values it read from the drawing win and the box only fills gaps.
+    """
     if item.storey is not None and item.storey not in frame.storey_names():
         raise HTTPException(status_code=422, detail=f"Unknown storey: {item.storey}")
     values = dict(item.values)
@@ -41,9 +45,12 @@ def _prepare(spec: ElementSpec, frame: Frame, item: ObservationIn) -> dict[str, 
             raise HTTPException(status_code=422, detail="Unknown page")
         if spec.measure is not None:
             try:
-                values.update(spec.measure(item.geometry, frame))
+                measured = spec.measure(item.geometry, frame)
             except ScaleMissing:
-                raise HTTPException(status_code=409, detail="Set the scale for this page first") from None
+                if source == "manual":
+                    raise HTTPException(status_code=409, detail="Set the scale for this page first") from None
+                measured = {}
+            values = {**measured, **values} if source == "agent" else {**values, **measured}
     try:
         return spec.observation_model.model_validate(values).model_dump(mode="json")
     except ValidationError as error:
@@ -118,7 +125,7 @@ def create(
 ) -> ObservationRecord:
     spec = registry.get(element)
     frame = current_frame(conn, project_id)
-    values = _prepare(spec, frame, item)
+    values = _prepare(spec, frame, item, source)
     observation_id = _insert(conn, project_id, element, frame.version, item.storey, source, item.geometry, values)
     return get_record(conn, project_id, element, observation_id)
 
@@ -133,7 +140,7 @@ def create_many(
     for index, raw in enumerate(items):
         try:
             item = ObservationIn.model_validate(raw)
-            prepared.append((item, _prepare(spec, frame, item)))
+            prepared.append((item, _prepare(spec, frame, item, source)))
         except ValidationError as error:
             errors.append({"index": index, "detail": _validation_detail(error)})
         except HTTPException as error:
@@ -155,7 +162,7 @@ def update(
     existing = get_record(conn, project_id, element, observation_id)
     if existing.frame_version != frame.version:
         raise HTTPException(status_code=409, detail="This observation belongs to an older frame")
-    values = _prepare(spec, frame, item)
+    values = _prepare(spec, frame, item, existing.source)
     conn.execute(
         "UPDATE observations SET storey = ?, geometry_json = ?, values_json = ? WHERE id = ?",
         (item.storey, item.geometry.model_dump_json() if item.geometry else None, json.dumps(values), observation_id),
@@ -175,8 +182,8 @@ def delete(conn: sqlite3.Connection, project_id: str, element: str, observation_
 def on_frame_frozen(conn: sqlite3.Connection, project_id: str, old_version: int | None, new_frame: Frame) -> None:
     """Carry every observation forward to a newly frozen frame.
 
-    Observations made from a drawn box are measured again with the new scale. If that
-    fails (for example the scale was removed), the old values are kept.
+    Manual observations made from a drawn box are measured again with the new scale. If that
+    fails (the scale was removed, or the element's measure raises), the old values are kept.
     """
     if old_version is None:
         return
@@ -188,10 +195,10 @@ def on_frame_frozen(conn: sqlite3.Connection, project_id: str, old_version: int 
         record = _record(row)
         values = dict(record.values)
         spec = registry.all_specs_by_key().get(record.element)
-        if spec is not None and spec.measure is not None and record.geometry is not None:
+        if spec is not None and spec.measure is not None and record.geometry is not None and record.source == "manual":
             try:
                 values.update(spec.measure(record.geometry, new_frame))
-            except (ScaleMissing, KeyError):
+            except Exception:  # keep the old values; a measure bug must not block freezing
                 pass
         _insert(
             conn,
