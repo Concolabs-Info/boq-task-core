@@ -1,8 +1,9 @@
 from fastapi import APIRouter, UploadFile
 from fastapi.responses import FileResponse
 
-from ...modules.pre import service
-from ...modules.pre.models import Document, Page
+from ...modules.pre import frame, service
+from ...modules.pre.models import Document, FrameInfo, Page, StoreyIn
+from ...modules.pre.scale import ScaleIn
 from ..deps import Conn, SettingsDep
 
 router = APIRouter(tags=["pre"])
@@ -25,3 +26,32 @@ def list_pages(project_id: str, conn: Conn) -> list[Page]:
 def page_image(page_id: str, conn: Conn, settings: SettingsDep) -> FileResponse:
     page, project_id = service.get_page(conn, page_id)
     return FileResponse(service.render_path(settings.storage_root, project_id, page.id), media_type="image/png")
+
+
+@router.put("/api/pages/{page_id}/scale", response_model=Page)
+def set_scale(page_id: str, body: ScaleIn, conn: Conn) -> Page:
+    return service.set_scale(conn, page_id, body)
+
+
+@router.get("/api/projects/{project_id}/storeys", response_model=list[StoreyIn])
+def list_storeys(project_id: str, conn: Conn) -> list[StoreyIn]:
+    return service.list_storeys(conn, project_id)
+
+
+@router.put("/api/projects/{project_id}/storeys", response_model=list[StoreyIn])
+def replace_storeys(project_id: str, body: list[StoreyIn], conn: Conn) -> list[StoreyIn]:
+    return service.replace_storeys(conn, project_id, body)
+
+
+@router.get("/api/projects/{project_id}/frame", response_model=FrameInfo)
+def get_frame(project_id: str, conn: Conn) -> FrameInfo:
+    service.get_project(conn, project_id)
+    latest = frame.latest_frame(conn, project_id)
+    return FrameInfo(version=None if latest is None else latest.version, status=frame.frame_status(conn, project_id))
+
+
+@router.post("/api/projects/{project_id}/frame/freeze", response_model=FrameInfo)
+def freeze(project_id: str, conn: Conn) -> FrameInfo:
+    service.get_project(conn, project_id)
+    frozen = frame.freeze_frame(conn, project_id)
+    return FrameInfo(version=frozen.version, status="current")

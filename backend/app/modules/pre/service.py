@@ -9,7 +9,8 @@ from fastapi import HTTPException
 
 from ...db import new_id, now
 from ...services.pdf import InvalidPdf, RenderedPage, render_pdf
-from .models import Document, Page, Project
+from .models import Document, Page, Project, StoreyIn
+from .scale import PointsScale, RatioScale, metres_per_pixel
 
 
 def create_project(conn: sqlite3.Connection, name: str) -> Project:
@@ -106,3 +107,40 @@ def get_page(conn: sqlite3.Connection, page_id: str) -> tuple[Page, str]:
 
 def render_path(storage_root: Path, project_id: str, page_id: str) -> Path:
     return storage_root / project_id / "renders" / f"{page_id}.png"
+
+
+def set_scale(conn: sqlite3.Connection, page_id: str, scale: RatioScale | PointsScale) -> Page:
+    get_page(conn, page_id)
+    try:
+        value = metres_per_pixel(scale)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    conn.execute(
+        "UPDATE pages SET metres_per_pixel = ?, scale_json = ? WHERE id = ?",
+        (value, scale.model_dump_json(), page_id),
+    )
+    return get_page(conn, page_id)[0]
+
+
+def list_storeys(conn: sqlite3.Connection, project_id: str) -> list[StoreyIn]:
+    get_project(conn, project_id)
+    rows = conn.execute(
+        "SELECT name, level_m FROM storeys WHERE project_id = ? ORDER BY position", (project_id,)
+    ).fetchall()
+    return [StoreyIn(**dict(row)) for row in rows]
+
+
+def replace_storeys(conn: sqlite3.Connection, project_id: str, storeys: list[StoreyIn]) -> list[StoreyIn]:
+    get_project(conn, project_id)
+    names = [storey.name.strip() for storey in storeys]
+    if len(set(names)) != len(names):
+        raise HTTPException(status_code=422, detail="Storey names must be unique")
+    conn.execute("DELETE FROM storeys WHERE project_id = ?", (project_id,))
+    conn.executemany(
+        "INSERT INTO storeys (project_id, name, level_m, position) VALUES (?, ?, ?, ?)",
+        [
+            (project_id, name, storey.level_m, index)
+            for index, (name, storey) in enumerate(zip(names, storeys, strict=True))
+        ],
+    )
+    return list_storeys(conn, project_id)

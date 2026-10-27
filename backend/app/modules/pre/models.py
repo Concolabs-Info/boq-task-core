@@ -35,3 +35,13 @@ class Page(BaseModel):
     metres_per_pixel: float | None
     scale: dict | None
     image_url: str
+
+
+class StoreyIn(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    level_m: float
+
+
+class FrameInfo(BaseModel):
+    version: int | None
+    status: str

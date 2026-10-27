@@ -5,6 +5,8 @@ from app.core.config import Settings
 from app.db import connect, init_db
 from app.main import create_app
 
+from .helpers import make_pdf, new_project, upload
+
 
 @pytest.fixture
 def settings(tmp_path):
@@ -20,6 +22,14 @@ def settings(tmp_path):
 def client(settings):
     with TestClient(create_app(settings)) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def project_with_pages(client):
+    """A project with one uploaded two page PDF. Returns (project_id, pages)."""
+    project_id = new_project(client)
+    upload(client, project_id, make_pdf(2))
+    return project_id, client.get(f"/api/projects/{project_id}/pages").json()
 
 
 @pytest.fixture
