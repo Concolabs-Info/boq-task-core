@@ -18,3 +18,20 @@ export async function runtimeHealth(models) {
     return "login_required";
   }
 }
+
+/** Sends a tiny request to every catalog model of a provider and reports which ones this login can use. */
+export async function probeModels(models, provider = PROVIDER) {
+  const results = [];
+  for (const model of models.getModels(provider)) {
+    try {
+      const reply = await models.complete(model, {
+        messages: [{ role: "user", content: "Reply with OK.", timestamp: Date.now() }],
+      });
+      const failed = reply.stopReason === "error" || reply.stopReason === "aborted";
+      results.push({ id: model.id, ok: !failed, error: failed ? reply.errorMessage || "request failed" : null });
+    } catch (error) {
+      results.push({ id: model.id, ok: false, error: error.message });
+    }
+  }
+  return results;
+}

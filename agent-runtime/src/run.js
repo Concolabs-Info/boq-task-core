@@ -67,7 +67,11 @@ export async function runSession({
     for (let turn = 0; turn < maxTurns; turn += 1) {
       const reply = await models.complete(model, context);
       if (reply.stopReason === "error" || reply.stopReason === "aborted") {
-        return { status: "failed", reason: reply.errorMessage || "model request failed" };
+        let reason = reply.errorMessage || "model request failed";
+        if (/not supported/i.test(reason)) {
+          reason += " Run npm run models in agent-runtime to see the models your account can use, then set AGENT_MODEL in .env.";
+        }
+        return { status: "failed", reason };
       }
       context.messages.push(reply);
       for (const block of reply.content) {

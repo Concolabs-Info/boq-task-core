@@ -26,7 +26,7 @@ test("loadConfig defaults", () => {
   assert.equal(config.backendUrl, "http://127.0.0.1:8000");
   assert.equal(config.maxTurns, 12);
   assert.equal(config.credentialKey, null);
-  assert.equal(config.model, "gpt-5.5");
+  assert.equal(config.model, "gpt-5.6-terra");
   assert.ok(config.stateDir.endsWith(".agent-state"));
 });
 
@@ -37,7 +37,7 @@ test("loadConfig reads the environment", () => {
       AGENT_RUNTIME_PORT: "9100",
       AGENT_RUNTIME_TOKEN: "tok",
       AGENT_CREDENTIAL_KEY: key,
-      AGENT_MODEL: "gpt-5.4",
+      AGENT_MODEL: "gpt-5.6-luna",
       AGENT_MAX_TURNS: "5",
       BACKEND_URL: "http://localhost:9000/",
     },
@@ -46,7 +46,7 @@ test("loadConfig reads the environment", () => {
   assert.equal(config.port, 9100);
   assert.equal(config.token, "tok");
   assert.equal(config.credentialKey.toString("hex"), key);
-  assert.equal(config.model, "gpt-5.4");
+  assert.equal(config.model, "gpt-5.6-luna");
   assert.equal(config.maxTurns, 5);
   assert.equal(config.backendUrl, "http://localhost:9000");
 });

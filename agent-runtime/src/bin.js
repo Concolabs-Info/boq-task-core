@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { loginWithDeviceCode } from "./auth.js";
 import { createBackendClient } from "./backend.js";
 import { loadConfig } from "./config.js";
-import { createAppModels, runtimeHealth } from "./models.js";
+import { createAppModels, probeModels, runtimeHealth } from "./models.js";
 import { createServer } from "./server.js";
 import { createFileCredentialStore } from "./vault.js";
 
@@ -21,6 +21,16 @@ if (process.argv.includes("--auth")) {
   console.log("Logged in.");
 } else if (process.argv.includes("--health")) {
   console.log(JSON.stringify({ status: await runtimeHealth(models) }));
+} else if (process.argv.includes("--models")) {
+  if ((await runtimeHealth(models)) !== "ready") {
+    console.error("Log in first with npm run auth.");
+    process.exit(1);
+  }
+  console.log("Checking which Codex models your account can use...");
+  for (const result of await probeModels(models)) {
+    const mark = result.id === config.model ? " (AGENT_MODEL)" : "";
+    console.log(`${result.ok ? "ok  " : "no  "} ${result.id}${mark}${result.ok ? "" : `  ${result.error}`}`);
+  }
 } else {
   if (!config.token) {
     console.error("Set AGENT_RUNTIME_TOKEN in .env first. The backend uses the same value.");

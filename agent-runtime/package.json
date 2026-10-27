@@ -11,6 +11,7 @@
     "start": "node src/bin.js",
     "auth": "node src/bin.js --auth",
     "health": "node src/bin.js --health",
+    "models": "node src/bin.js --models",
     "test": "node --test \"tests/*.test.js\""
   },
   "dependencies": {

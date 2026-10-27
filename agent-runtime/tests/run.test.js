@@ -175,3 +175,15 @@ test("a second submit in the same reply is not saved again", async () => {
   assert.equal((await result).status, "accepted");
   assert.equal(backend.saved.length, 1);
 });
+
+test("an unsupported model error tells you how to pick one", async () => {
+  const refused = fauxAssistantMessage([], {
+    stopReason: "error",
+    errorMessage: "Codex error: The 'x' model is not supported when using Codex with a ChatGPT account.",
+  });
+  const { result } = run([refused], fakeBackend());
+  const { status, reason } = await result;
+  assert.equal(status, "failed");
+  assert.match(reason, /not supported/);
+  assert.match(reason, /npm run models/);
+});

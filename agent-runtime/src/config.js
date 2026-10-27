@@ -28,7 +28,7 @@ export function loadConfig(env = process.env, { loadEnvFile = true } = {}) {
     token: env.AGENT_RUNTIME_TOKEN || "",
     stateDir: resolve(REPO_ROOT, env.AGENT_STATE_DIR || ".agent-state"),
     credentialKey: key ? parseKey(key) : null,
-    model: env.AGENT_MODEL || "gpt-5.5",
+    model: env.AGENT_MODEL || "gpt-5.6-terra",
     backendUrl: (env.BACKEND_URL || "http://127.0.0.1:8000").replace(/\/+$/, ""),
     maxTurns: Number(env.AGENT_MAX_TURNS || 12),
   };

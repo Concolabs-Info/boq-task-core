@@ -61,7 +61,7 @@ All three services read this one `.env` file in the repo root. It is git-ignored
 | `AGENT_RUNTIME_URL` | backend | Where the backend finds the agent runtime. Keep the port the same as above |
 | `BACKEND_URL` | agent runtime | Where the agent runtime finds the backend |
 | `AGENT_CREDENTIAL_KEY` | agent runtime | 32 bytes as 64 hex characters. Encrypts your saved Codex login |
-| `AGENT_MODEL` | agent runtime | The Codex model the agent uses |
+| `AGENT_MODEL` | agent runtime | The Codex model the agent uses. `npm run models` lists the ones your account can use |
 | `AGENT_MAX_TURNS` | agent runtime | Most model turns one agent run may take |
 | `NEXT_PUBLIC_API_URL` | frontend | Where the browser finds the backend |
 
@@ -94,7 +94,9 @@ npm start
 
 `npm run auth` prints a link and a short code. Open the link, sign in with your ChatGPT account, enter the code, and the terminal prints `Logged in.`
 
-`npm run health` prints `ready` once you are logged in. If your account cannot use the model in `AGENT_MODEL`, change it in `.env`. If port 8090 is taken, set `AGENT_RUNTIME_PORT` and `AGENT_RUNTIME_URL` to another port.
+`npm run health` prints `ready` once you are logged in.
+
+Not every Codex model is open to every ChatGPT account. `npm run models` sends a tiny request to each model and prints which ones your account can use. Put one of those in `AGENT_MODEL` in `.env` and restart `npm start`. If port 8090 is taken, set `AGENT_RUNTIME_PORT` and `AGENT_RUNTIME_URL` to another port.
 
 ### 4. Frontend
 
