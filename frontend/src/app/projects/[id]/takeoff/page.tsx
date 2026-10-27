@@ -36,7 +36,7 @@ export default function TakeoffPage() {
   const [pageId, setPageId] = useState<string>();
   const [draftBox, setDraftBox] = useState<BBox | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
-  const [agentRun, setAgentRun] = useState<{ key: number; bbox: BBox } | null>(null);
+  const [agentRunId, setAgentRunId] = useState<string | null>(null);
   const [selectedObs, setSelectedObs] = useState<string | null>(null);
 
   const spec = elements.data?.find((e) => e.key === elementKey) ?? elements.data?.[0];
@@ -54,6 +54,14 @@ export default function TakeoffPage() {
       return refresh();
     },
   });
+  const startAgent = useMutation({
+    mutationFn: (bbox: BBox) =>
+      apiSend<{ run_id: string }>("POST", `/api/projects/${id}/elements/${spec!.key}/agent-runs`, {
+        page_id: page!.id,
+        bbox,
+      }),
+    onSuccess: (data) => setAgentRunId(data.run_id),
+  });
   const remove = useMutation({
     mutationFn: (observationId: string) => apiSend("DELETE", `${base}/${observationId}`),
     onSuccess: refresh,
@@ -61,13 +69,21 @@ export default function TakeoffPage() {
 
   function openEditor(observation?: ObservationRecord, bbox: BBox | null = null) {
     save.reset();
-    setAgentRun(null);
+    setAgentRunId(null);
     setEditor({
       observationId: observation?.id ?? null,
       bbox: observation?.geometry?.bbox ?? bbox,
       storey: observation?.storey ?? storeys.data?.[0]?.name ?? "",
       form: toForm(observation?.values ?? {}),
     });
+  }
+
+  /** A draft box or open form belongs to one page and element, so changing either clears them. */
+  function resetDraft() {
+    setDraftBox(null);
+    setEditor(null);
+    setAgentRunId(null);
+    startAgent.reset();
   }
 
   if (!spec || !pages.data) return <p className="text-sm text-slate-500">Loading...</p>;
@@ -97,7 +113,10 @@ export default function TakeoffPage() {
       <div className="flex flex-wrap items-end gap-4">
         <label>
           <span className="label">Element</span>
-          <select className="input" value={spec.key} onChange={(e) => setElementKey(e.target.value)}>
+          <select className="input" value={spec.key} onChange={(e) => {
+              setElementKey(e.target.value);
+              resetDraft();
+            }}>
             {elements.data?.map((e) => (
               <option key={e.key} value={e.key}>
                 {e.display_name}
@@ -107,7 +126,10 @@ export default function TakeoffPage() {
         </label>
         <label>
           <span className="label">Page</span>
-          <select className="input" value={page?.id ?? ""} onChange={(e) => setPageId(e.target.value)}>
+          <select className="input" value={page?.id ?? ""} onChange={(e) => {
+              setPageId(e.target.value);
+              resetDraft();
+            }}>
             {pages.data.map((p, index) => (
               <option key={p.id} value={p.id}>
                 Page {index + 1}
@@ -131,7 +153,8 @@ export default function TakeoffPage() {
               onBox={(bbox) => {
                 setDraftBox(bbox);
                 setEditor(null);
-                setAgentRun(null);
+                setAgentRunId(null);
+                startAgent.reset();
               }}
             />
           ) : (
@@ -140,7 +163,7 @@ export default function TakeoffPage() {
         </section>
 
         <aside className="space-y-4">
-          {draftBox && !editor && !agentRun && (
+          {draftBox && !editor && !agentRunId && (
             <section className="card space-y-2">
               <h2 className="label">New box</h2>
               <div className="flex flex-wrap gap-2">
@@ -150,9 +173,9 @@ export default function TakeoffPage() {
                 <button
                   type="button"
                   className="btn"
-                  disabled={agentStatus !== "ready" || !spec.has_prompt}
+                  disabled={agentStatus !== "ready" || !spec.has_prompt || startAgent.isPending}
                   title={agentStatus !== "ready" ? "The agent runtime is not ready" : undefined}
-                  onClick={() => setAgentRun({ key: Date.now(), bbox: draftBox })}
+                  onClick={() => startAgent.mutate(draftBox)}
                 >
                   Ask agent
                 </button>
@@ -160,23 +183,22 @@ export default function TakeoffPage() {
                   Cancel
                 </button>
               </div>
+              {startAgent.error && <p className="text-sm text-red-700">{errorText(startAgent.error)}</p>}
             </section>
           )}
 
-          {agentRun && page && (
+          {agentRunId && (
             <section className="card space-y-2">
               <h2 className="label">Agent</h2>
               <AgentRunPanel
-                key={agentRun.key}
-                projectId={id}
-                element={spec.key}
-                geometry={{ page_id: page.id, bbox: agentRun.bbox }}
+                key={agentRunId}
+                runId={agentRunId}
                 onFinished={() => {
                   setDraftBox(null);
                   refresh();
                 }}
               />
-              <button type="button" className="btn" onClick={() => setAgentRun(null)}>
+              <button type="button" className="btn" onClick={() => setAgentRunId(null)}>
                 Close
               </button>
             </section>
@@ -260,7 +282,10 @@ export default function TakeoffPage() {
                   className={o.id === selectedObs ? "bg-orange-50" : "cursor-pointer hover:bg-slate-50"}
                   onClick={() => {
                     setSelectedObs(o.id);
-                    if (o.geometry) setPageId(o.geometry.page_id);
+                    if (o.geometry && o.geometry.page_id !== page?.id) {
+                      setPageId(o.geometry.page_id);
+                      resetDraft();
+                    }
                   }}
                 >
                   <td>{o.storey ?? "-"}</td>
