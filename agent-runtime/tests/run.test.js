@@ -150,3 +150,28 @@ test("element prompt file names cannot leave the prompts folder", async () => {
   await assert.rejects(readPromptFile("../package.json"), /Invalid prompt file/);
   assert.match(await readPromptFile("element-reader.md"), /submit_observations/);
 });
+
+test("submit tool hoists $defs so references resolve from the tool root", async () => {
+  const { definitionFor } = await import("../src/tools/submit-observations.js");
+  const schema = {
+    type: "object",
+    properties: { kind: { $ref: "#/$defs/Kind" } },
+    $defs: { Kind: { enum: ["a", "b"], type: "string" } },
+  };
+  const parameters = definitionFor(schema).parameters;
+  assert.deepEqual(parameters.$defs, schema.$defs);
+  const values = parameters.properties.observations.items.properties.values;
+  assert.equal(values.$defs, undefined);
+  assert.deepEqual(values.properties.kind, { $ref: "#/$defs/Kind" });
+});
+
+test("a second submit in the same reply is not saved again", async () => {
+  const backend = fakeBackend();
+  const twice = fauxAssistantMessage(
+    [fauxToolCall("submit_observations", { observations: GOOD }), fauxToolCall("submit_observations", { observations: GOOD })],
+    { stopReason: "toolUse" },
+  );
+  const { result } = run([twice], backend);
+  assert.equal((await result).status, "accepted");
+  assert.equal(backend.saved.length, 1);
+});

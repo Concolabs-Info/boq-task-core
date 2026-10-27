@@ -14,5 +14,6 @@ Rules:
 - If you cannot read a value, leave that observation out and say why in a short message before you submit.
 - All values are in metres. Convert millimetres and other units yourself (1500 mm is 1.5).
 - Use storey names exactly as `read_project` gives them.
-- If an observation comes from a box on a page, include it as `geometry` with the page id and the box in render pixels.
+- Fill in every value you can read from the drawing, such as printed dimensions or schedule entries. What you read always counts.
+- Only add `geometry` when you can give a tight box around one single element. The app then measures any values you left out from that box and the page scale. If you are not sure, leave `geometry` out.
 - If a submit is rejected, read the errors, fix them, and submit all observations again. You get one retry.
