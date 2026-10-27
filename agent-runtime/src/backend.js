@@ -28,6 +28,14 @@ export function createBackendClient({ baseUrl, token, fetch = globalThis.fetch }
       return Buffer.from(await response.arrayBuffer()).toString("base64");
     },
 
+    /** Text, vector paths and layers read from the page's PDF. bbox is [x0, y0, x1, y1] or null for the whole page. */
+    async vectors(pageId, bbox) {
+      const query = bbox ? `?${new URLSearchParams({ x0: bbox[0], y0: bbox[1], x1: bbox[2], y1: bbox[3] })}` : "";
+      const response = await fetch(`${baseUrl}/internal/pages/${pageId}/vectors${query}`, { headers });
+      if (!response.ok) throw await failure(response);
+      return response.json();
+    },
+
     /** Returns { ok: true, ids } or { ok: false, errors } when the backend rejects the observations. */
     async submitObservations(projectId, element, frameVersion, observations) {
       const response = await fetch(`${baseUrl}/internal/projects/${projectId}/elements/${element}/observations`, {

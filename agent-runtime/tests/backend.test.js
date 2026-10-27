@@ -46,3 +46,12 @@ test("crop returns base64 and passes the box as query", async () => {
   assert.equal(Buffer.from(data, "base64").toString(), "png-bytes");
   assert.equal(seen.url, "http://backend/internal/pages/pg/crop?x0=1&y0=2&x1=3&y1=4");
 });
+
+test("vectors passes the box as query, or none for the whole page", async () => {
+  const seen = {};
+  const backendClient = client(200, { layers: [], text: [], paths: [] }, seen);
+  await backendClient.vectors("pg", [1, 2, 3, 4]);
+  assert.equal(seen.url, "http://backend/internal/pages/pg/vectors?x0=1&y0=2&x1=3&y1=4");
+  await backendClient.vectors("pg", null);
+  assert.equal(seen.url, "http://backend/internal/pages/pg/vectors");
+});

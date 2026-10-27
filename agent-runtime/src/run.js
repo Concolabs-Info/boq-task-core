@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { RUNTIME_ROOT } from "./config.js";
 import * as crop from "./tools/crop.js";
 import * as readProject from "./tools/read-project.js";
+import * as readVectors from "./tools/read-vectors.js";
 import * as submitObservations from "./tools/submit-observations.js";
 
 const PROMPTS_DIR = join(RUNTIME_ROOT, "prompts");
@@ -39,6 +40,7 @@ export async function runSession({
   const tools = new Map([
     [readProject.definition.name, readProject],
     [crop.definition.name, crop],
+    [readVectors.definition.name, readVectors],
     ["submit_observations", submitObservations],
   ]);
 
@@ -46,7 +48,12 @@ export async function runSession({
     const image = await backend.crop(request.page_id, request.bbox);
     const context = {
       systemPrompt: await buildSystemPrompt(request, readPrompt),
-      tools: [readProject.definition, crop.definition, submitObservations.definitionFor(request.schema)],
+      tools: [
+        readProject.definition,
+        crop.definition,
+        readVectors.definition,
+        submitObservations.definitionFor(request.schema),
+      ],
       messages: [
         {
           role: "user",

@@ -6,7 +6,8 @@ How to work:
 
 1. Call `read_project` first. It tells you the pages, their scale (metres per pixel) and the storey names.
 2. Look at the boxed image. If you need more, for example a section, a schedule or a note on the same or another page, use `crop` to look at that region.
-3. Call `submit_observations` once with everything you found.
+3. Use `read_vectors` on the same region to read text exactly as it is stored in the PDF. Prefer it over reading numbers from the image: a dimension like `1500 x 1200` or a schedule cell comes back as exact text, and rectangles come back with their size in pixels and the CAD layer they are on. Some PDFs are scans with no text or vectors; then only the image is available.
+4. Call `submit_observations` once with everything you found.
 
 Rules:
 
