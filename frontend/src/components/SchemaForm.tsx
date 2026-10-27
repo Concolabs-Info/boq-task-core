@@ -2,6 +2,8 @@
 
 import type { JsonSchemaProperty, ObservationSchema } from "@/lib/types";
 
+import { Field } from "./ui";
+
 export type FormValues = Record<string, string>;
 
 /** The JSON type of a property, looking inside anyOf for optional fields. */
@@ -42,17 +44,14 @@ export function SchemaForm({
 }) {
   const required = new Set(schema.required ?? []);
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid grid-cols-2 gap-3">
       {Object.entries(schema.properties).map(([name, property]) => {
         const options = fieldEnum(property);
         const type = fieldType(property);
         const set = (text: string) => onChange({ ...value, [name]: text });
+        const label = `${property.title ?? name}${required.has(name) ? " *" : ""}`;
         return (
-          <label key={name} className="block">
-            <span className="label">
-              {property.title ?? name}
-              {required.has(name) && " *"}
-            </span>
+          <Field key={name} label={label} hint={property.description}>
             {options ? (
               <select className="input" value={value[name] ?? ""} onChange={(e) => set(e.target.value)}>
                 <option value="" />
@@ -70,15 +69,14 @@ export function SchemaForm({
               </select>
             ) : (
               <input
-                className="input"
+                className={`input ${type === "number" || type === "integer" ? "text-right tabular-nums" : ""}`}
                 inputMode={type === "number" || type === "integer" ? "decimal" : undefined}
                 placeholder={property.default != null ? String(property.default) : undefined}
                 value={value[name] ?? ""}
                 onChange={(e) => set(e.target.value)}
               />
             )}
-            {property.description && <span className="mt-0.5 block text-xs text-slate-500">{property.description}</span>}
-          </label>
+          </Field>
         );
       })}
     </div>

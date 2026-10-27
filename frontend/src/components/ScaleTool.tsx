@@ -1,15 +1,16 @@
 "use client";
 
+import { Check, Crosshair, Hash } from "lucide-react";
 import { useState } from "react";
 
 import type { Point } from "./PageViewer";
+import { Button, Segmented } from "./ui";
 
 type ScaleBody =
   | { method: "ratio"; denominator: number }
   | { method: "points"; p1: Point; p2: Point; distance_m: number };
 
 type Props = {
-  metresPerPixel: number | null;
   picking: boolean;
   points: [Point, Point] | null;
   onStartPicking: () => void;
@@ -18,29 +19,22 @@ type Props = {
 };
 
 /** Set a page scale from a printed ratio or from two points a known distance apart. */
-export function ScaleTool({ metresPerPixel, picking, points, onStartPicking, onSave, saving }: Props) {
+export function ScaleTool({ picking, points, onStartPicking, onSave, saving }: Props) {
   const [method, setMethod] = useState<"ratio" | "points">("ratio");
   const [ratio, setRatio] = useState("100");
   const [distance, setDistance] = useState("");
+  const pixels = points ? Math.hypot(points[1][0] - points[0][0], points[1][1] - points[0][1]) : 0;
 
   return (
     <div className="space-y-3">
-      <p className="text-sm">
-        Current scale:{" "}
-        {metresPerPixel ? (
-          <strong>{(metresPerPixel * 1000).toFixed(3)} mm per pixel</strong>
-        ) : (
-          <span className="text-amber-700">not set</span>
-        )}
-      </p>
-      <div className="flex gap-4 text-sm">
-        <label className="flex items-center gap-1">
-          <input type="radio" checked={method === "ratio"} onChange={() => setMethod("ratio")} /> Printed ratio
-        </label>
-        <label className="flex items-center gap-1">
-          <input type="radio" checked={method === "points"} onChange={() => setMethod("points")} /> Two points
-        </label>
-      </div>
+      <Segmented
+        options={[
+          { value: "ratio", label: "Printed ratio", icon: Hash },
+          { value: "points", label: "Two points", icon: Crosshair },
+        ]}
+        value={method}
+        onChange={setMethod}
+      />
 
       {method === "ratio" ? (
         <form
@@ -50,17 +44,18 @@ export function ScaleTool({ metresPerPixel, picking, points, onStartPicking, onS
             onSave({ method: "ratio", denominator: Number(ratio) });
           }}
         >
-          <span className="text-sm">1 :</span>
-          <input className="input w-24" value={ratio} onChange={(event) => setRatio(event.target.value)} />
-          <button className="btn" disabled={saving || !(Number(ratio) > 0)}>
-            Save
-          </button>
+          <span className="text-sm text-zinc-600">1 :</span>
+          <input className="input w-24 tabular-nums" value={ratio} onChange={(event) => setRatio(event.target.value)} />
+          <Button type="submit" variant="primary" icon={Check} loading={saving} disabled={!(Number(ratio) > 0)}>
+            Apply
+          </Button>
         </form>
       ) : (
         <div className="space-y-2">
-          <button type="button" className="btn" onClick={onStartPicking}>
-            {picking ? "Picking..." : points ? "Pick again" : "Pick two points on the page"}
-          </button>
+          <p className="text-xs text-zinc-500">Pick two points on a printed dimension or the scale bar, then enter the real distance.</p>
+          <Button icon={Crosshair} onClick={onStartPicking} disabled={picking}>
+            {picking ? "Click two points on the drawing" : points ? "Pick again" : "Pick two points"}
+          </Button>
           {points && (
             <form
               className="flex items-center gap-2"
@@ -69,17 +64,17 @@ export function ScaleTool({ metresPerPixel, picking, points, onStartPicking, onS
                 onSave({ method: "points", p1: points[0], p2: points[1], distance_m: Number(distance) });
               }}
             >
-              <span className="text-sm">Real distance</span>
+              <span className="whitespace-nowrap text-xs tabular-nums text-zinc-500">{pixels.toFixed(0)} px =</span>
               <input
-                className="input w-24"
-                placeholder="metres"
+                className="input w-24 tabular-nums"
+                placeholder="0.000"
                 value={distance}
                 onChange={(event) => setDistance(event.target.value)}
               />
-              <span className="text-sm">m</span>
-              <button className="btn" disabled={saving || !(Number(distance) > 0)}>
-                Save
-              </button>
+              <span className="text-sm text-zinc-600">m</span>
+              <Button type="submit" variant="primary" icon={Check} loading={saving} disabled={!(Number(distance) > 0)}>
+                Apply
+              </Button>
             </form>
           )}
         </div>

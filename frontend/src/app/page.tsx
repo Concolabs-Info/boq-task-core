@@ -1,9 +1,11 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronRight, FolderKanban, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
+import { Banner, Button, EmptyState, ErrorText, PageHeader, Panel } from "@/components/ui";
 import { apiGet, apiSend, errorText } from "@/lib/api";
 import type { Project } from "@/lib/types";
 
@@ -20,44 +22,81 @@ export default function ProjectsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-semibold">Projects</h1>
-
-      <form
-        className="card flex gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (name.trim()) create.mutate(name.trim());
-        }}
-      >
-        <input
-          className="input"
-          placeholder="New project name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
-        <button className="btn btn-primary" disabled={!name.trim() || create.isPending}>
-          Create
-        </button>
-      </form>
-      {create.error && <p className="text-sm text-red-700">{errorText(create.error)}</p>}
+    <div className="mx-auto max-w-5xl space-y-4">
+      <PageHeader title="Projects" description="Each project holds its drawings, takeoff and BOQ." />
 
       {projects.error && (
-        <p className="text-sm text-red-700">
-          Could not reach the backend: {errorText(projects.error)}. Is it running on port 8000?
-        </p>
+        <Banner tone="danger">
+          Cannot reach the backend at port 8000 ({errorText(projects.error)}). Start it with{" "}
+          <code className="mono">uvicorn app.main:app --reload</code> in <code className="mono">backend</code>.
+        </Banner>
       )}
-      <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
-        {projects.data?.map((project) => (
-          <li key={project.id}>
-            <Link href={`/projects/${project.id}/pre`} className="flex justify-between px-4 py-3 hover:bg-slate-50">
-              <span className="font-medium">{project.name}</span>
-              <span className="text-sm text-slate-500">{project.created_at.slice(0, 10)}</span>
-            </Link>
-          </li>
-        ))}
-        {projects.data?.length === 0 && <li className="px-4 py-3 text-sm text-slate-500">No projects yet.</li>}
-      </ul>
+
+      <Panel
+        title="All projects"
+        bodyClassName=""
+        actions={
+          <form
+            className="flex items-center gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (name.trim()) create.mutate(name.trim());
+            }}
+          >
+            <input
+              className="input w-64"
+              placeholder="New project name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+            <Button type="submit" variant="primary" icon={Plus} loading={create.isPending} disabled={!name.trim()}>
+              Create project
+            </Button>
+          </form>
+        }
+      >
+        {create.error && (
+          <div className="px-4 pt-3">
+            <ErrorText>{errorText(create.error)}</ErrorText>
+          </div>
+        )}
+        {projects.data?.length === 0 ? (
+          <EmptyState icon={FolderKanban} title="No projects yet">
+            Create a project, then upload its drawings in Pre.
+          </EmptyState>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th className="w-40">Created</th>
+                <th className="w-24" />
+              </tr>
+            </thead>
+            <tbody>
+              {projects.data?.map((project) => (
+                <tr key={project.id} className="hover:bg-zinc-50">
+                  <td>
+                    <Link href={`/projects/${project.id}/pre`} className="font-medium text-zinc-900 hover:text-blue-700">
+                      {project.name}
+                    </Link>
+                  </td>
+                  <td className="tabular-nums text-zinc-500">{project.created_at.slice(0, 10)}</td>
+                  <td className="text-right">
+                    <Link
+                      href={`/projects/${project.id}/pre`}
+                      className="inline-flex items-center gap-0.5 text-sm font-medium text-blue-700 hover:underline"
+                    >
+                      Open
+                      <ChevronRight aria-hidden className="h-4 w-4" />
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Panel>
     </div>
   );
 }

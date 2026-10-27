@@ -1,9 +1,11 @@
 "use client";
 
-import { useRef, useState, type MouseEvent } from "react";
+import { useRef, useState, type MouseEvent, type ReactNode } from "react";
 
 import { apiUrl } from "@/lib/api";
 import type { BBox, Page } from "@/lib/types";
+
+import { Segmented } from "./ui";
 
 export type Point = [number, number];
 
@@ -16,20 +18,22 @@ type Props = {
   onBox?: (bbox: BBox) => void;
   boxes?: ViewerBox[];
   points?: Point[];
+  /** Extra controls shown on the left of the viewer toolbar. */
+  toolbar?: ReactNode;
 };
 
-const ZOOMS = [1, 1.5, 2, 3];
+const ZOOMS = [1, 1.5, 2, 3].map((value) => ({ value, label: `${value * 100}%` }));
 const TONES = {
-  default: "border-sky-500 bg-sky-400/10",
-  selected: "border-orange-500 bg-orange-400/20",
-  draft: "border-fuchsia-600 border-dashed bg-fuchsia-400/10",
+  default: "border-blue-600 bg-blue-500/10",
+  selected: "border-amber-500 bg-amber-400/20",
+  draft: "border-blue-700 border-dashed bg-blue-500/10",
 };
 
 /**
  * Shows a rendered page. All coordinates going in and out are render pixels (150 DPI),
  * whatever the zoom, so they match what the backend stores.
  */
-export function PageViewer({ page, mode = "view", onPoints, onBox, boxes = [], points = [] }: Props) {
+export function PageViewer({ page, mode = "view", onPoints, onBox, boxes = [], points = [], toolbar }: Props) {
   const imageRef = useRef<HTMLImageElement>(null);
   const [zoom, setZoom] = useState(1);
   const [pending, setPending] = useState<Point | null>(null);
@@ -87,25 +91,23 @@ export function PageViewer({ page, mode = "view", onPoints, onBox, boxes = [], p
   const pct = (value: number, total: number) => `${(value / total) * 100}%`;
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 text-xs text-slate-500">
-        <span>Zoom</span>
-        {ZOOMS.map((value) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setZoom(value)}
-            className={`rounded px-2 py-0.5 ${zoom === value ? "bg-slate-900 text-white" : "bg-slate-200"}`}
-          >
-            {value * 100}%
-          </button>
-        ))}
-        {mode === "points" && <span className="ml-2 text-amber-700">Click two points a known distance apart</span>}
-        {mode === "box" && <span className="ml-2 text-amber-700">Drag to draw a box</span>}
+    <div className="overflow-hidden rounded-md border border-zinc-200 bg-white">
+      <div className="flex min-h-10 flex-wrap items-center justify-between gap-2 border-b border-zinc-200 px-3 py-1.5">
+        <div className="flex items-center gap-3 text-sm">
+          {toolbar}
+          {mode === "points" && <span className="text-xs text-blue-700">Click two points a known distance apart</span>}
+          {mode === "box" && <span className="text-xs text-zinc-500">Drag on the drawing to mark an element</span>}
+        </div>
+        <div className="flex items-center gap-2 text-xs text-zinc-500">
+          <span className="tabular-nums">
+            {page.width_px} x {page.height_px} px
+          </span>
+          <Segmented options={ZOOMS} value={zoom} onChange={setZoom} />
+        </div>
       </div>
-      <div className="max-h-[70vh] overflow-auto rounded border border-slate-300 bg-white">
+      <div className="max-h-[calc(100vh-13rem)] min-h-[24rem] overflow-auto bg-zinc-200 p-3">
         <div
-          className={`relative select-none ${mode === "view" ? "" : "cursor-crosshair"}`}
+          className={`relative mx-auto select-none bg-white shadow-sm ring-1 ring-zinc-300 ${mode === "view" ? "" : "cursor-crosshair"}`}
           style={{ width: `${zoom * 100}%` }}
           onClick={handleClick}
           onMouseDown={handleMouseDown}
@@ -126,7 +128,7 @@ export function PageViewer({ page, mode = "view", onPoints, onBox, boxes = [], p
               }}
             >
               {box.label && (
-                <span className="absolute -top-5 left-0 whitespace-nowrap rounded bg-slate-900 px-1 text-[10px] text-white">
+                <span className="absolute -top-4 left-0 whitespace-nowrap rounded-sm bg-zinc-900 px-1 text-[10px] leading-4 text-white">
                   {box.label}
                 </span>
               )}
@@ -135,7 +137,7 @@ export function PageViewer({ page, mode = "view", onPoints, onBox, boxes = [], p
           {shownPoints.map((point, index) => (
             <div
               key={index}
-              className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-red-600"
+              className="pointer-events-none absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-blue-600 ring-1 ring-blue-700"
               style={{ left: pct(point[0], page.width_px), top: pct(point[1], page.height_px) }}
             />
           ))}

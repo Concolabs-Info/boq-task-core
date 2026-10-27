@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { AgentBadge } from "@/components/AgentBadge";
+import { Sidebar } from "@/components/Sidebar";
 
 import "./globals.css";
 import { Providers } from "./providers";
@@ -15,17 +14,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-slate-50 text-slate-900">
+      <body>
         <Providers>
-          <header className="border-b border-slate-200 bg-white">
-            <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-              <Link href="/" className="font-semibold">
-                BOQ Task Core
-              </Link>
-              <AgentBadge />
-            </div>
-          </header>
-          <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <main className="min-w-0 flex-1 px-6 py-5">{children}</main>
+          </div>
         </Providers>
       </body>
     </html>

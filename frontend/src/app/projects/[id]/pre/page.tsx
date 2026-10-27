@@ -1,21 +1,24 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
+import { FileStack, FileText, Lock, Upload } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { PageViewer, type Point } from "@/components/PageViewer";
 import { ScaleTool } from "@/components/ScaleTool";
 import { StoreysEditor } from "@/components/StoreysEditor";
-import { apiSend, apiUpload, apiUrl, errorText } from "@/lib/api";
+import { Badge, Banner, Button, EmptyState, ErrorText, PageHeader, Panel } from "@/components/ui";
+import { apiSend, apiUpload, errorText } from "@/lib/api";
 import { useFrame, usePages, useRefreshProject, useStoreys } from "@/lib/queries";
 import type { Document, FrameInfo, Page, Storey } from "@/lib/types";
 
-const FRAME_TEXT = {
-  none: "Not frozen yet. Freeze the frame to start Takeoff.",
-  current: "Frozen and up to date. Takeoff can run.",
-  stale: "Pre changed since the last freeze. Freeze again before Takeoff.",
-};
+function scaleLabel(page: Page): string | null {
+  if (!page.metres_per_pixel) return null;
+  const scale = page.scale as { method?: string; denominator?: number } | null;
+  if (scale?.method === "ratio") return `1:${scale.denominator}`;
+  return `${(page.metres_per_pixel * 1000).toFixed(2)} mm/px`;
+}
 
 export default function PrePage() {
   const { id } = useParams<{ id: string }>();
@@ -23,11 +26,14 @@ export default function PrePage() {
   const storeys = useStoreys(id);
   const frame = useFrame(id);
   const refresh = useRefreshProject(id);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const [points, setPoints] = useState<[Point, Point] | null>(null);
   const selected = pages.data?.find((page) => page.id === selectedId) ?? pages.data?.[0];
+  const selectedIndex = pages.data?.findIndex((page) => page.id === selected?.id) ?? -1;
+  const unscaled = pages.data?.filter((page) => !page.metres_per_pixel).length ?? 0;
 
   const upload = useMutation({
     mutationFn: (files: File[]) => apiUpload<Document[]>(`/api/projects/${id}/documents`, files),
@@ -49,99 +55,135 @@ export default function PrePage() {
     onSuccess: refresh,
   });
 
+  const status = frame.data?.status;
+
   return (
-    <div className="grid gap-4 lg:grid-cols-[18rem_1fr]">
-      <aside className="space-y-4">
-        <section className="card space-y-2">
-          <h2 className="label">1. Drawings</h2>
-          <input
-            type="file"
-            accept="application/pdf"
-            multiple
-            className="block w-full text-sm"
-            onChange={(event) => {
-              const files = Array.from(event.target.files ?? []);
-              if (files.length) upload.mutate(files);
-              event.target.value = "";
-            }}
-          />
-          {upload.isPending && <p className="text-sm text-slate-500">Uploading and rendering...</p>}
-          {upload.error && <p className="text-sm text-red-700">{errorText(upload.error)}</p>}
-          <ul className="grid grid-cols-3 gap-2">
-            {pages.data?.map((page, index) => (
-              <li key={page.id}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedId(page.id);
-                    setPoints(null);
-                    setPicking(false);
-                  }}
-                  className={`w-full rounded border p-1 text-left ${selected?.id === page.id ? "border-slate-900" : "border-slate-200"}`}
-                >
-                  <img src={apiUrl(page.image_url)} alt="" className="aspect-[4/3] w-full object-contain" />
-                  <span className="block text-[11px]">
-                    Page {index + 1} {page.metres_per_pixel ? "" : <span className="text-amber-700">(no scale)</span>}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {selected && (
-          <section className="card space-y-2">
-            <h2 className="label">2. Scale for the selected page</h2>
-            <ScaleTool
-              key={selected.id}
-              metresPerPixel={selected.metres_per_pixel}
-              picking={picking}
-              points={points}
-              onStartPicking={() => {
-                setPoints(null);
-                setPicking(true);
+    <>
+      <PageHeader
+        title="Pre"
+        description="Upload drawings, set each page's scale and list the storeys. Then freeze the frame for Takeoff."
+        actions={
+          <>
+            {status === "current" && <Badge tone="success">Frame v{frame.data?.version} frozen</Badge>}
+            {status === "stale" && <Badge tone="warning">Changed since v{frame.data?.version}</Badge>}
+            {status === "none" && <Badge>Not frozen</Badge>}
+            <input
+              ref={fileInput}
+              type="file"
+              accept="application/pdf"
+              multiple
+              className="hidden"
+              onChange={(event) => {
+                const files = Array.from(event.target.files ?? []);
+                if (files.length) upload.mutate(files);
+                event.target.value = "";
               }}
-              onSave={(body) => saveScale.mutate(body)}
-              saving={saveScale.isPending}
             />
-            {saveScale.error && <p className="text-sm text-red-700">{errorText(saveScale.error)}</p>}
-          </section>
-        )}
+            <Button icon={Upload} loading={upload.isPending} onClick={() => fileInput.current?.click()}>
+              Upload PDF
+            </Button>
+            <Button
+              variant="primary"
+              icon={Lock}
+              loading={freeze.isPending}
+              disabled={status === "current" || !pages.data?.length}
+              onClick={() => freeze.mutate()}
+            >
+              {status === "stale" ? "Freeze new version" : "Freeze frame"}
+            </Button>
+          </>
+        }
+      />
 
-        <section className="card space-y-2">
-          <h2 className="label">3. Storeys</h2>
-          {storeys.data && (
-            <StoreysEditor
-              key={JSON.stringify(storeys.data)}
-              storeys={storeys.data}
-              onSave={(body) => saveStoreys.mutate(body)}
-              saving={saveStoreys.isPending}
-            />
-          )}
-          {saveStoreys.error && <p className="text-sm text-red-700">{errorText(saveStoreys.error)}</p>}
-        </section>
+      {upload.error && <Banner tone="danger">{errorText(upload.error)}</Banner>}
+      {freeze.error && <Banner tone="danger">{errorText(freeze.error)}</Banner>}
+      {status === "stale" && (
+        <Banner tone="warning">
+          Pages, scales or storeys changed after the last freeze. Takeoff is read-only until you freeze a new version.
+          Observations carry over and boxes are measured again with the new scale.
+        </Banner>
+      )}
 
-        <section className="card space-y-2">
-          <h2 className="label">4. Frame</h2>
-          {frame.data && (
-            <p className={`text-sm ${frame.data.status === "current" ? "text-emerald-700" : "text-amber-700"}`}>
-              {frame.data.version ? `Version ${frame.data.version}. ` : ""}
-              {FRAME_TEXT[frame.data.status]}
-            </p>
-          )}
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={freeze.isPending || frame.data?.status === "current"}
-            onClick={() => freeze.mutate()}
+      <div className="grid items-start gap-4 xl:grid-cols-[20rem_minmax(0,1fr)]">
+        <div className="space-y-4">
+          <Panel
+            title="Pages"
+            bodyClassName=""
+            actions={
+              pages.data?.length ? (
+                <span className="text-xs text-zinc-500">
+                  {unscaled ? `${unscaled} without scale` : "All scaled"}
+                </span>
+              ) : undefined
+            }
           >
-            Freeze frame
-          </button>
-          {freeze.error && <p className="text-sm text-red-700">{errorText(freeze.error)}</p>}
-        </section>
-      </aside>
+            {pages.data?.length ? (
+              <ul className="max-h-72 divide-y divide-zinc-100 overflow-y-auto">
+                {pages.data.map((page, index) => {
+                  const active = page.id === selected?.id;
+                  const label = scaleLabel(page);
+                  return (
+                    <li key={page.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedId(page.id);
+                          setPoints(null);
+                          setPicking(false);
+                        }}
+                        className={`flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm ${
+                          active ? "bg-blue-50 shadow-[inset_2px_0_0_0_theme(colors.blue.600)]" : "hover:bg-zinc-50"
+                        }`}
+                      >
+                        <FileText aria-hidden className="h-4 w-4 shrink-0 text-zinc-400" />
+                        <span className="flex-1 font-medium text-zinc-800">Page {index + 1}</span>
+                        {label ? <Badge>{label}</Badge> : <Badge tone="warning">No scale</Badge>}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <EmptyState icon={FileStack} title="No drawings yet">
+                Upload one or more PDF drawings.
+              </EmptyState>
+            )}
+          </Panel>
 
-      <section>
+          <Panel title={selected ? `Scale, page ${selectedIndex + 1}` : "Scale"}>
+            {selected ? (
+              <>
+                <ScaleTool
+                  key={selected.id}
+                  picking={picking}
+                  points={points}
+                  onStartPicking={() => {
+                    setPoints(null);
+                    setPicking(true);
+                  }}
+                  onSave={(body) => saveScale.mutate(body)}
+                  saving={saveScale.isPending}
+                />
+                {saveScale.error && <ErrorText>{errorText(saveScale.error)}</ErrorText>}
+              </>
+            ) : (
+              <p className="text-sm text-zinc-500">Upload a drawing first.</p>
+            )}
+          </Panel>
+
+          <Panel title="Storeys">
+            {storeys.data && (
+              <StoreysEditor
+                key={JSON.stringify(storeys.data)}
+                storeys={storeys.data}
+                onSave={(body) => saveStoreys.mutate(body)}
+                saving={saveStoreys.isPending}
+              />
+            )}
+            {saveStoreys.error && <ErrorText>{errorText(saveStoreys.error)}</ErrorText>}
+          </Panel>
+        </div>
+
         {selected ? (
           <PageViewer
             page={selected}
@@ -151,11 +193,20 @@ export default function PrePage() {
               setPoints([p1, p2]);
               setPicking(false);
             }}
+            toolbar={
+              <span className="font-medium text-zinc-800">
+                Page {selectedIndex + 1} of {pages.data?.length}
+              </span>
+            }
           />
         ) : (
-          <div className="card text-sm text-slate-500">Upload a PDF to see its pages here.</div>
+          <Panel>
+            <EmptyState icon={FileStack} title="No drawing to show">
+              Uploaded pages appear here.
+            </EmptyState>
+          </Panel>
         )}
-      </section>
-    </div>
+      </div>
+    </>
   );
 }

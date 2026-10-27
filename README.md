@@ -108,13 +108,13 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. The badge at the top right shows whether the agent is ready.
+Open http://localhost:3000. The bottom of the sidebar shows whether the agent is ready.
 
 ## Using the app
 
 1. Create a project and open it.
 2. **Pre:** upload a PDF. For each page you will measure on, set the scale (a printed ratio like 1:100, or two points a known distance apart). Add the storeys, then click **Freeze frame**.
-3. **Takeoff:** pick **Example: Pad footing concrete**. Draw a box around a footing on the plan, then click **Add by hand** (length and width come from the box, type the mark and depth) or **Ask agent**.
+3. **Takeoff:** pick **Example: Pad footing concrete**. Draw a box around a footing on the plan, then choose **Enter values by hand** (length and width come from the box, type the mark and depth) or **Ask the agent to read it**.
 4. **Review:** fix any errors, then click **Confirm**.
 5. **BOQ:** see the grouped lines and download the CSV.
 
