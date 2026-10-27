@@ -3,12 +3,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api.routes import pre, projects, takeoff
+from .api.routes import boq, pre, projects, review, takeoff
 from .core.config import Settings, get_settings
 from .db import connect, init_db
 from .modules.takeoff import elements  # noqa: F401  (registers every element)
 
-ROUTERS = (projects.router, pre.router, takeoff.router)
+ROUTERS = (projects.router, pre.router, takeoff.router, review.router, boq.router)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
