@@ -3,8 +3,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .api.routes import pre, projects
 from .core.config import Settings, get_settings
 from .db import connect, init_db
+
+ROUTERS = (projects.router, pre.router)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -31,6 +34,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
+    for router in ROUTERS:
+        app.include_router(router)
     return app
 
 
