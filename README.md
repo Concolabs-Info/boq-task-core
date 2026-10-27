@@ -252,7 +252,24 @@ Your Notion page explains which element to build and links the brief or videos t
 6. Fill in `ANSWERS.md` with your assumptions and notes.
 7. Invite **`Concolabs-Info`** as a collaborator on your repo and paste the link under **Your links** on your Notion page.
 
-Small, clear commits are welcome. If something in this repo gets in your way, change it and say why in `ANSWERS.md`.
+Small, clear commits are welcome.
+
+### You can change the base
+
+This repo is a starting point, not a fixed frame. Change the UI, the backend or the agent runtime wherever your element needs it. For example:
+
+- a form, panel or page built for your element instead of the generic one
+- extra fields on the observation, new checks, or a different layout for items
+- new endpoints, helpers or agent tools, such as reading a bar schedule or a section from the PDF
+- changes to the shared contract or the core flow, if your task really needs them
+
+Keep these working, so we can run and review your copy:
+
+- the Pre, Takeoff, Review, BOQ flow and the example element
+- the existing tests, or update them and say why
+- the setup in this README, plus anything new you add to it
+
+Write in `ANSWERS.md` what you changed in the base and why.
 
 ### Using Codex and other AI tools
 
