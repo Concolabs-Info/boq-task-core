@@ -1,0 +1,36 @@
+{
+  "description": "A box on a page, in render pixels (150 DPI), origin top left.",
+  "properties": {
+    "bbox": {
+      "description": "x0, y0, x1, y1 in render pixels",
+      "maxItems": 4,
+      "minItems": 4,
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "title": "Bbox",
+      "type": "array"
+    },
+    "page_id": {
+      "title": "Page Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "page_id",
+    "bbox"
+  ],
+  "title": "Geometry",
+  "type": "object"
+}

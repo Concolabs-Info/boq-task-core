@@ -1,0 +1,76 @@
+{
+  "properties": {
+    "basis": {
+      "description": "How the quantity was worked out, for example 2 x 1.500 x 0.600",
+      "title": "Basis",
+      "type": "string"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "element": {
+      "title": "Element",
+      "type": "string"
+    },
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "item_code": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Item Code"
+    },
+    "observation_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Observation Ids",
+      "type": "array"
+    },
+    "quantity": {
+      "title": "Quantity",
+      "type": "number"
+    },
+    "section": {
+      "title": "Section",
+      "type": "string"
+    },
+    "storey": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Storey"
+    },
+    "unit": {
+      "title": "Unit",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "element",
+    "section",
+    "description",
+    "quantity",
+    "unit",
+    "storey",
+    "observation_ids",
+    "basis"
+  ],
+  "title": "BoqItem",
+  "type": "object"
+}
