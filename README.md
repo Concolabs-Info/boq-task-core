@@ -15,6 +15,9 @@ It is the starting point for the Concolabs developer task. Your job is to add on
 >
 > A template copy is your own repo with a clean history. It is not linked back here, so other candidates cannot see your work, and you never need to share your GitHub username with us up front.
 
+> [!NOTE]
+> **Disclaimer.** This repository belongs to Concolabs Inc. and is shared only for the Concolabs hiring task. See [License and disclaimer](#license-and-disclaimer).
+
 ## How it works
 
 ```
@@ -286,3 +289,16 @@ shared/contracts/             JSON Schemas generated from the backend models
 samples/                      a sample drawing to try the app with
 ANSWERS.md                    your notes for the reviewers
 ```
+
+## License and disclaimer
+
+Copyright (c) 2026 Concolabs Inc. All rights reserved. See [`LICENSE`](LICENSE).
+
+- **For the hiring task only.** If Concolabs invited you, you may copy this repo into a private repository, run it and change it to complete the task and share it with us. Do not use it for anything else, and do not publish it or your copy.
+- **Not a product.** This is a small teaching base for an interview task. It is not a Concolabs product, it is not secure enough to put on the internet, and its quantities must not be used for real tenders, contracts, estimates or construction.
+- **Sample data is made up.** The sample drawing and the example element are invented to show the pattern. They do not describe a real project or a full measurement method.
+- **AI output can be wrong.** The agent can misread drawings. Everything it submits has to be checked by a person before it counts, which is why Review exists.
+- **Your ChatGPT account is yours.** The agent runs on your own ChatGPT account through Codex, under OpenAI's terms. Your login is stored encrypted on your machine only and is never sent to Concolabs. Requests the agent makes count against your own plan.
+- **Your work stays yours.** By sharing your repository with Concolabs you let us access, run and review it to assess your application.
+- **Third-party packages** (FastAPI, PyMuPDF, Next.js, pi-ai and others) are not part of this repo and keep their own licenses.
+- **No warranty.** Provided as is, without warranty of any kind. See `LICENSE`.
