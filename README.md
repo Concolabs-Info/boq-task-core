@@ -50,6 +50,23 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 Open `.env`, paste the printed value into `AGENT_CREDENTIAL_KEY`, and set `AGENT_RUNTIME_TOKEN` to any long random string.
 
+All three services read this one `.env` file in the repo root. It is git-ignored, so your values never get committed. `.env.example` is the committed template:
+
+| Setting | Used by | What it is |
+| --- | --- | --- |
+| `DATABASE_PATH` | backend | SQLite file, relative to the repo root |
+| `STORAGE_ROOT` | backend | Folder for uploaded PDFs and page renders |
+| `AGENT_RUNTIME_TOKEN` | backend, agent runtime | Shared secret between the two. Any long random string, the same for both |
+| `AGENT_RUNTIME_PORT` | agent runtime | Port it listens on (default 8090) |
+| `AGENT_RUNTIME_URL` | backend | Where the backend finds the agent runtime. Keep the port the same as above |
+| `BACKEND_URL` | agent runtime | Where the agent runtime finds the backend |
+| `AGENT_CREDENTIAL_KEY` | agent runtime | 32 bytes as 64 hex characters. Encrypts your saved Codex login |
+| `AGENT_MODEL` | agent runtime | The Codex model the agent uses |
+| `AGENT_MAX_TURNS` | agent runtime | Most model turns one agent run may take |
+| `NEXT_PUBLIC_API_URL` | frontend | Where the browser finds the backend |
+
+If you add a setting, add it to `.env.example` too, with a placeholder value, never a real secret.
+
 ### 2. Backend
 
 ```powershell
@@ -64,16 +81,20 @@ API docs: http://127.0.0.1:8000/docs
 
 ### 3. Agent runtime (optional)
 
+The agent uses **Codex** through your own ChatGPT account (Plus or Pro). There is no API key to buy or paste: you log in once with a device code, and the login is saved encrypted in `.agent-state/` (git-ignored).
+
 In a second terminal:
 
 ```powershell
 cd agent-runtime
 npm install
-npm run auth     # once: prints a code, open the link and sign in with your ChatGPT account
+npm run auth     # once: prints a link and a code
 npm start
 ```
 
-`npm run health` prints `ready` once you are logged in. If your account cannot use the model in `AGENT_MODEL`, change it in `.env`.
+`npm run auth` prints a link and a short code. Open the link, sign in with your ChatGPT account, enter the code, and the terminal prints `Logged in.`
+
+`npm run health` prints `ready` once you are logged in. If your account cannot use the model in `AGENT_MODEL`, change it in `.env`. If port 8090 is taken, set `AGENT_RUNTIME_PORT` and `AGENT_RUNTIME_URL` to another port.
 
 ### 4. Frontend
 
@@ -147,6 +168,16 @@ Your Notion page explains which element to build and links the brief or videos t
 6. Invite **Concolabs-Info** as a collaborator on your repo and paste the link under "Your links" on your Notion page.
 
 Small, clear commits are welcome. If something in this repo gets in your way, change it and say why in `ANSWERS.md`.
+
+### Using Codex and other AI tools
+
+You are welcome to use Codex, ChatGPT, Claude, Copilot or any other AI coding tool while you work. We use them every day too. What we look at is whether you understand and can explain the code you hand in, so:
+
+- Read and test what an AI tool writes before you keep it.
+- Make sure the measurement rules come from your brief, not from a guess.
+- Note in `ANSWERS.md` which tools you used and for what.
+
+The in-app agent is separate from your coding tools. It is part of the product: it reads drawings and submits observations for your element, and your prompt in `agent-runtime/prompts/` decides how well it does that.
 
 ## Repo layout
 
