@@ -1,0 +1,19 @@
+{
+  "name": "boq-agent-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Agent runtime: Codex login and drawing reading runs for the BOQ task core",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "start": "node src/bin.js",
+    "auth": "node src/bin.js --auth",
+    "health": "node src/bin.js --health",
+    "test": "node --test \"tests/*.test.js\""
+  },
+  "dependencies": {
+    "@earendil-works/pi-ai": "^0.84.4"
+  }
+}
