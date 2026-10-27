@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import { useAgentStatus } from "@/components/AgentBadge";
 import { AgentRunPanel } from "@/components/AgentRunPanel";
+import { BoxContents } from "@/components/BoxContents";
 import { IssuesList } from "@/components/IssuesList";
 import { ItemsTable } from "@/components/ItemsTable";
 import { PageViewer } from "@/components/PageViewer";
@@ -198,6 +199,7 @@ export default function TakeoffPage() {
     inspector = (
       <Panel title="New box" actions={<Badge tone="info">{boxSize(page, draftBox)}</Badge>}>
         <div className="space-y-2">
+          {page && <BoxContents pageId={page.id} bbox={draftBox} />}
           <Button className="w-full justify-start" icon={Pencil} onClick={() => openEditor(undefined, draftBox)}>
             Enter values by hand
           </Button>

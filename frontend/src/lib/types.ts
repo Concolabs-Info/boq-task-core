@@ -114,3 +114,12 @@ export type BoqLine = {
 };
 
 export type AgentStatus = "ready" | "login_required" | "offline";
+
+/** Read straight from the PDF by GET /api/pages/{id}/vectors. Coordinates are render pixels. */
+export type PageVectors = {
+  page_id: string;
+  layers: string[];
+  text: { text: string; bbox: BBox }[];
+  paths: { kind: "line" | "rect" | "curve" | "quad"; bbox: BBox; layer: string | null; points: [number, number][] }[];
+  truncated: boolean;
+};
