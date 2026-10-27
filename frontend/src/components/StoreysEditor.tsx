@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import type { Storey } from "@/lib/types";
 
@@ -25,36 +25,25 @@ export function StoreysEditor({
 
   return (
     <div className="space-y-2">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Level (m)</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, index) => (
-            <tr key={index}>
-              <td>
-                <input className="input" value={row.name} onChange={(e) => update(index, { name: e.target.value })} />
-              </td>
-              <td>
-                <input
-                  className="input w-24"
-                  value={row.level}
-                  onChange={(e) => update(index, { level: e.target.value })}
-                />
-              </td>
-              <td>
-                <button type="button" className="btn btn-danger" onClick={() => setRows(rows.filter((_, i) => i !== index))}>
-                  Remove
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="grid grid-cols-[1fr_5rem_auto] items-center gap-2">
+        <span className="label mb-0">Name</span>
+        <span className="label mb-0">Level (m)</span>
+        <span />
+        {rows.map((row, index) => (
+          <Fragment key={index}>
+            <input className="input" value={row.name} onChange={(e) => update(index, { name: e.target.value })} />
+            <input className="input" value={row.level} onChange={(e) => update(index, { level: e.target.value })} />
+            <button
+              type="button"
+              className="btn btn-danger px-2"
+              title="Remove storey"
+              onClick={() => setRows(rows.filter((_, i) => i !== index))}
+            >
+              x
+            </button>
+          </Fragment>
+        ))}
+      </div>
       <div className="flex gap-2">
         <button type="button" className="btn" onClick={() => setRows([...rows, { name: "", level: "" }])}>
           Add storey
