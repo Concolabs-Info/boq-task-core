@@ -112,6 +112,8 @@ Open http://localhost:3000. The bottom of the sidebar shows whether the agent is
 
 ## Using the app
 
+`samples/example-foundation-plan.pdf` is a small A3 foundation plan at 1:100 with pad footings F1 and F2 and a footing schedule. Use it to try the whole flow before you work on your own drawings.
+
 1. Create a project and open it.
 2. **Pre:** upload a PDF. For each page you will measure on, set the scale (a printed ratio like 1:100, or two points a known distance apart). Add the storeys, then click **Freeze frame**.
 3. **Takeoff:** pick **Example: Pad footing concrete**. Draw a box around a footing on the plan, then choose **Enter values by hand** (length and width come from the box, type the mark and depth) or **Ask the agent to read it**.
@@ -135,6 +137,14 @@ The worked example is `backend/app/modules/takeoff/elements/example_pad_footing.
 
 The agent never decides quantities. It only submits observations, which the backend checks against your observation model. If they are invalid, nothing is saved and the agent gets one chance to fix them.
 
+Rules the core applies to every element, so you do not need to code them:
+
+- **Box versus typed values.** For a box you draw by hand, the values `measure` returns replace what was typed, because the box is the source. For the agent it is the other way round: values it read from the drawing win, and `measure` only fills the fields it left out.
+- **Missing scale.** Drawing a box on a page with no scale is refused with "Set the scale for this page first".
+- **Storeys.** An observation whose storey is no longer in Pre gets an `unknown_storey` error.
+- **Crashes.** If `quantify` or `check` raises, the element shows a `quantify_failed` or `check_failed` error instead of breaking the page. Stored values that no longer fit a changed observation model show `invalid_observation`.
+- **Re-freezing.** Manual observations with a box are measured again with the new scale. If your `measure` raises, the old values are kept.
+
 ## Add an element
 
 1. Copy `backend/app/modules/takeoff/elements/example_pad_footing.py` to a new file, for example `my_element.py`.
@@ -145,6 +155,36 @@ The agent never decides quantities. It only submits observations, which the back
 6. Restart the backend. Your element appears in Takeoff and Review.
 
 If you change a model in `backend/app/modules/takeoff/contracts.py`, run `python backend/scripts/export_contracts.py` from the repo root. The full API description is always live at http://127.0.0.1:8000/openapi.json.
+
+## Commands
+
+| Where | Command | What it does |
+| --- | --- | --- |
+| `backend` | `uvicorn app.main:app --reload` | Run the API on port 8000 (docs at `/docs`) |
+| `backend` | `pytest` | Backend tests |
+| `backend` | `ruff check .` and `ruff format .` | Lint and format |
+| repo root | `python backend/scripts/export_contracts.py` | Regenerate `shared/contracts` after changing a contract model |
+| `agent-runtime` | `npm run auth` | Log in to Codex with your ChatGPT account (once) |
+| `agent-runtime` | `npm run health` | Print `ready` or `login_required` |
+| `agent-runtime` | `npm run models` | List the Codex models your account can use |
+| `agent-runtime` | `npm start` | Run the agent runtime |
+| `agent-runtime` | `npm test` | Agent runtime tests (no login or network needed) |
+| `frontend` | `npm run dev` | Run the app on port 3000 |
+| `frontend` | `npm run typecheck` and `npm run lint` | Type check and lint |
+
+## Troubleshooting
+
+| You see | Do this |
+| --- | --- |
+| Projects page says it cannot reach the backend | Start the backend (step 2). Check `NEXT_PUBLIC_API_URL` in `.env`. |
+| Sidebar says **Agent offline** | Start the agent runtime with `npm start`. Check `AGENT_RUNTIME_URL` matches `AGENT_RUNTIME_PORT`, and that `AGENT_RUNTIME_TOKEN` is set. |
+| Sidebar says **Agent needs login** | Run `npm run auth` in `agent-runtime`. |
+| Agent run fails with "model is not supported" | Run `npm run models`, put a model marked `ok` in `AGENT_MODEL`, restart `npm start`. |
+| `Port 8090 is already in use` | Set `AGENT_RUNTIME_PORT` and `AGENT_RUNTIME_URL` in `.env` to another port. |
+| "Freeze the frame first" | Pre changed after the last freeze. Freeze again in Pre. |
+| "Set the scale for this page first" | Set the page scale in Pre, freeze, then draw the box again. |
+| "Credential file could not be decrypted" | `AGENT_CREDENTIAL_KEY` changed. Delete `.agent-state/` and run `npm run auth` again. |
+| You want a clean start | Stop the backend and delete the `storage/` folder. It holds the database and uploaded drawings. |
 
 ## Tests
 
@@ -184,8 +224,23 @@ The in-app agent is separate from your coding tools. It is part of the product: 
 ## Repo layout
 
 ```
-backend/         FastAPI app, element contract, example element, tests
-agent-runtime/   Codex login, agent runs, prompts, tests
-frontend/        Next.js app
-shared/          JSON contracts generated from the backend models
+backend/
+  app/api/routes/             HTTP routes (internal.py is only for the agent runtime)
+  app/modules/pre/            projects, uploads, scale, storeys, frame
+  app/modules/takeoff/        element contract, registry, observations, pipeline
+  app/modules/takeoff/elements/   one file per element: put yours here
+  app/modules/review/         confirmations and stale checks
+  app/modules/boq/            BOQ lines and CSV
+  tests/
+agent-runtime/
+  src/                        Codex login, encrypted credential file, run loop, HTTP server
+  src/tools/                  read_project, crop, submit_observations
+  prompts/                    element-reader.md plus one prompt per element
+  tests/
+frontend/
+  src/app/                    pages: projects, Pre, Takeoff, Review, BOQ
+  src/components/             viewer, forms, tables, shared UI
+shared/contracts/             JSON Schemas generated from the backend models
+samples/                      a sample drawing to try the app with
+ANSWERS.md                    your notes for the reviewers
 ```
