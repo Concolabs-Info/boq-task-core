@@ -4,6 +4,17 @@ A small bill of quantities (BOQ) app. You upload construction drawings, read ele
 
 It is the starting point for the Concolabs developer task. Your job is to add one element to it. See [Your task](#your-task).
 
+> [!IMPORTANT]
+> **How to take the task: use the template, do not fork.**
+>
+> 1. Click the green **Use this template** button at the top of this page, then **Create a new repository**.
+> 2. Create it under your own GitHub account and set it to **Private**.
+> 3. Do all your work in your copy. Do not fork this repo and do not open pull requests here.
+> 4. When you are done, go to your repo's **Settings > Collaborators**, click **Add people** and invite **`Concolabs-Info`**.
+> 5. Paste your repo link under **Your links** on your Notion page.
+>
+> A template copy is your own repo with a clean history. It is not linked back here, so other candidates cannot see your work, and you never need to share your GitHub username with us up front.
+
 ## How it works
 
 ```
@@ -156,6 +167,34 @@ Rules the core applies to every element, so you do not need to code them:
 
 If you change a model in `backend/app/modules/takeoff/contracts.py`, run `python backend/scripts/export_contracts.py` from the repo root. The full API description is always live at http://127.0.0.1:8000/openapi.json.
 
+## Reading the PDF deterministically
+
+Drawings exported from CAD are not just pictures. The PDF still holds the exact data the image is drawn from, and you can read it with plain code, with no AI and no guessing:
+
+| In the PDF | What it gives you | Example |
+| --- | --- | --- |
+| **Text with positions** | Every mark, dimension, note and schedule cell as exact text, with its box | `F1`, `1500 x 1200`, a schedule row `F1  1500 x 1200  600` |
+| **Vector paths** | The lines, rectangles and curves the drawing is made of, with exact coordinates | the outline of a footing, a beam edge, a grid line |
+| **Layers** | PDF optional content groups, usually the CAD layer names | `S-FOUNDATIONS`, `A-DIMS`, `A-TEXT` |
+
+The sample drawing has all three. Its footing outlines sit on the `S-FOUNDATIONS` layer. The F1 outline is 89 px wide, which is 1.507 m at 1:100. That is exact to the pixel, where a hand-drawn box is only as good as your mouse.
+
+This repo already gives you a reader for it:
+
+- **Python:** `read_vectors(pdf_path, page_index, bbox=None, layers=None)` in `backend/app/services/pdf_vectors.py`. It returns `layers`, `text` (lines with their box) and `paths` (kind, box, layer, points), all in render pixels like the rest of the app.
+- **API:** `GET /api/pages/{page_id}/vectors?x0=&y0=&x1=&y1=&layer=` returns the same as JSON. Leave out the box for the whole page, and repeat `layer=` to filter.
+- **Agent:** the `read_vectors` tool. The base prompt tells the agent to prefer exact PDF text over reading numbers from the image.
+- **UI:** when you draw a box in Takeoff, the panel shows the text and layers the PDF holds inside it.
+
+Ways you can use it for your element:
+
+- **Measure from geometry, not from the mouse.** Find the vector rectangles or lines on your element's layer inside the drawn box, and take sizes from them instead of the box edges.
+- **Read printed sizes and schedules as text.** Pull section sizes, bar marks or schedule rows straight from the text, and check them against what was measured.
+- **Use layers to separate elements.** Filter by layer to find every beam or slab edge on a plan, then count or measure them.
+- **Combine it with the agent.** Let code extract what it can read exactly, and let the agent handle what needs judgement, such as which note applies to which element.
+
+Not every PDF has this data. Scanned drawings are only an image: then `text` and `paths` come back empty and you fall back to the scale and a drawn box. Many exports have no named layers either. Handle these cases and say in `ANSWERS.md` how you did.
+
 ## Commands
 
 | Where | Command | What it does |
@@ -202,12 +241,13 @@ GitHub Actions runs all of them on every push.
 
 Your Notion page explains which element to build and links the brief or videos to follow.
 
-1. Click **Use this template** on GitHub to create your own copy. Make it **private**.
+1. Create your private copy with **Use this template**, as shown in [How to take the task](#boq-task-core) at the top. Do not fork.
 2. Add your element by following [Add an element](#add-an-element). Model what a quantity surveyor would read from the drawings, then write `quantify` and `check` to follow the measurement rules in your brief.
 3. Write tests that show your quantities are right.
-4. Add an agent prompt for your element and try it on a real drawing.
-5. Fill in `ANSWERS.md` with your assumptions and notes.
-6. Invite **Concolabs-Info** as a collaborator on your repo and paste the link under "Your links" on your Notion page.
+4. Where your drawings allow it, read sizes and text from the PDF itself. See [Reading the PDF deterministically](#reading-the-pdf-deterministically).
+5. Add an agent prompt for your element and try it on a real drawing.
+6. Fill in `ANSWERS.md` with your assumptions and notes.
+7. Invite **`Concolabs-Info`** as a collaborator on your repo and paste the link under **Your links** on your Notion page.
 
 Small, clear commits are welcome. If something in this repo gets in your way, change it and say why in `ANSWERS.md`.
 
@@ -231,10 +271,12 @@ backend/
   app/modules/takeoff/elements/   one file per element: put yours here
   app/modules/review/         confirmations and stale checks
   app/modules/boq/            BOQ lines and CSV
+  app/services/pdf.py         PDF checks, page renders and crops
+  app/services/pdf_vectors.py reads text, vector paths and layers from the PDF
   tests/
 agent-runtime/
   src/                        Codex login, encrypted credential file, run loop, HTTP server
-  src/tools/                  read_project, crop, submit_observations
+  src/tools/                  read_project, crop, read_vectors, submit_observations
   prompts/                    element-reader.md plus one prompt per element
   tests/
 frontend/
