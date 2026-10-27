@@ -2,6 +2,7 @@
   "name": "boq-agent-runtime",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
   "type": "module",
   "description": "Agent runtime: Codex login and drawing reading runs for the BOQ task core",
   "engines": {

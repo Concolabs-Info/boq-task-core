@@ -1,0 +1,53 @@
+Concolabs Evaluation License
+
+Copyright (c) 2026 Concolabs Inc. All rights reserved.
+
+This repository, including its source code, documentation, prompts, sample
+drawings and other files (the "Software"), is the property of Concolabs Inc.
+("Concolabs"). It is made available only so that people Concolabs has invited
+can take part in a Concolabs hiring task.
+
+1. Permission
+
+   If Concolabs has invited you to a hiring task, you may copy the Software
+   into a private repository of your own (for example with GitHub's "Use this
+   template"), run it, change it and add to it, only to complete that task and
+   to share the result with Concolabs.
+
+2. Restrictions
+
+   You may not, without written permission from Concolabs:
+
+   a. use the Software, or any part of it, for any other purpose, including
+      commercial work, other projects, products or services;
+   b. publish, share, sublicense, sell or otherwise make the Software, or your
+      copy of it, available to anyone other than Concolabs, including in a
+      public repository;
+   c. remove or change this license or the copyright notice.
+
+3. Your work
+
+   The code and notes you write for the task remain yours. By sharing your
+   repository with Concolabs, you allow Concolabs to access, run and review it
+   for the purpose of assessing your application.
+
+4. Third-party software
+
+   The Software depends on third-party packages that are not part of it and
+   are licensed by their own authors under their own terms. Those terms apply
+   to those packages.
+
+5. No warranty
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
+   CONCOLABS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+   ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+   WITH THE SOFTWARE OR THE USE OF OR OTHER DEALINGS IN THE SOFTWARE.
+
+6. Ending
+
+   This permission ends when the hiring task ends or when Concolabs asks you to
+   stop. When it ends, delete your copies of the Software, except where
+   Concolabs agrees otherwise in writing.

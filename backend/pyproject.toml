@@ -3,6 +3,7 @@ name = "boq-task-core-api"
 version = "0.1.0"
 description = "Backend for the BOQ task core: Pre, Takeoff, Review and BOQ"
 requires-python = ">=3.12"
+license = { text = "Proprietary. See LICENSE in the repository root." }
 dependencies = [
   "fastapi>=0.121,<1",
   "uvicorn[standard]>=0.35,<1",
