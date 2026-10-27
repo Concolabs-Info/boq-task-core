@@ -33,6 +33,12 @@ You need Python 3.12 or newer, Node 22.19 or newer, and Git. A ChatGPT account (
 
 The commands below are for Windows PowerShell. On macOS or Linux, use `source .venv/bin/activate` and `cp` instead of `Copy-Item`.
 
+On Windows, PowerShell blocks scripts like `Activate.ps1` and `npm.ps1` by default. Allow them once for your user:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
 ### 1. Settings
 
 From the repo root:
@@ -115,14 +121,16 @@ The agent never decides quantities. It only submits observations, which the back
 5. Add tests in `backend/tests/`.
 6. Restart the backend. Your element appears in Takeoff and Review.
 
-If you change a shared contract model or an API route, run `python backend/scripts/export_contracts.py` from the repo root.
+If you change a model in `backend/app/modules/takeoff/contracts.py`, run `python backend/scripts/export_contracts.py` from the repo root. The full API description is always live at http://127.0.0.1:8000/openapi.json.
 
 ## Tests
 
+From the repo root, with the backend virtual environment active:
+
 ```powershell
-cd backend; pytest; ruff check .               # backend
-cd agent-runtime; npm test                     # agent runtime
-cd frontend; npm run typecheck; npm run lint   # frontend
+pytest backend; ruff check backend                                # backend
+npm --prefix agent-runtime test                                   # agent runtime
+npm --prefix frontend run typecheck; npm --prefix frontend run lint   # frontend
 ```
 
 GitHub Actions runs all of them on every push.
@@ -147,5 +155,4 @@ backend/         FastAPI app, element contract, example element, tests
 agent-runtime/   Codex login, agent runs, prompts, tests
 frontend/        Next.js app
 shared/          JSON contracts generated from the backend models
-scripts/         repo checks
 ```
