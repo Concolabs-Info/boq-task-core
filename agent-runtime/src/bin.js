@@ -28,6 +28,14 @@ if (process.argv.includes("--auth")) {
   }
   const backend = createBackendClient({ baseUrl: config.backendUrl, token: config.token });
   const server = createServer({ config, models, backend });
+  server.on("error", (error) => {
+    if (error.code === "EADDRINUSE") {
+      console.error(`Port ${config.port} is already in use. Stop the other process or set AGENT_RUNTIME_PORT in .env.`);
+    } else {
+      console.error(error.message);
+    }
+    process.exit(1);
+  });
   server.listen(config.port, config.host, async () => {
     const health = await runtimeHealth(models);
     console.log(`Agent runtime listening on http://${config.host}:${config.port} (${health})`);
