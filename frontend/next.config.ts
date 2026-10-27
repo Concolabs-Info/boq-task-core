@@ -13,7 +13,8 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Do not write AGENTS.md or CLAUDE.md into this folder on dev start.
   agentRules: false,
-  devIndicators: { position: "bottom-right" },
+  // The dev badge would sit on top of the agent status in the sidebar.
+  devIndicators: false,
   turbopack: { root: process.cwd() },
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000",
